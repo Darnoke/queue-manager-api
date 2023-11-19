@@ -2,10 +2,17 @@ require('dotenv').config();
 
 const express = require('express');
 const session = require('express-session');
+const multer = require('multer');
+const mongoose = require('./db');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+const upload = multer();
+app.use(upload.array());
+
+app.use(express.json());
 app.use(session({
   secret: process.env.SECRET_KEY || 'defaultsecret',
   resave: false,
@@ -15,6 +22,8 @@ app.use(session({
     maxAge: 20 * 60 * 1000, // 20 minutes
   },  
 }));
+
+app.use('/auth', authRoutes);
 
 app.get('/', (req, res) => {
   res.send('Hello World!');
