@@ -5,7 +5,6 @@ const User = require('./../models/user');
 
 router.post('/register', async (req, res) => {
   try {
-    console.log(req.body)
     const { username, password } = req.body;
 
     const existingUser = await User.findOne({ username });
