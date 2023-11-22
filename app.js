@@ -23,9 +23,12 @@ app.use(session({
   },  
 }));
 
-app.use('/auth', authRoutes);
+const apiRouter = express.Router();
+app.use('/api', apiRouter);
 
-app.get('/', (req, res) => {
+apiRouter.use('/auth', authRoutes);
+
+apiRouter.get('/', (req, res) => {
   res.send('Hello World!');
 });
 
