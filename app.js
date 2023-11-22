@@ -5,6 +5,9 @@ const session = require('express-session');
 const multer = require('multer');
 const mongoose = require('./db');
 const authRoutes = require('./routes/auth');
+const adminRoutes = require('./routes/admin');
+
+const { checkCredentials } = require('./middleware/authMiddleware.js');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -27,6 +30,8 @@ const apiRouter = express.Router();
 app.use('/api', apiRouter);
 
 apiRouter.use('/auth', authRoutes);
+
+apiRouter.use('/admin', checkCredentials('admin'), adminRoutes);
 
 apiRouter.get('/', (req, res) => {
   res.send('Hello World!');
