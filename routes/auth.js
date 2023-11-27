@@ -23,6 +23,8 @@ router.post('/login', async (req, res) => {
         username: user.username,
         role: user.role,
       };
+
+      await req.session.save();
   
       res.status(200).json({
         username: user.username,
@@ -35,7 +37,7 @@ router.post('/login', async (req, res) => {
 });
 
 router.get('/user', async (req, res) => {
-  if (!req?.session.user) res.status(401).send('User not logged in');
+  if (!req.session.user) res.status(401).send('User not logged in');
   return res.status(200).json(req.session.user);
 });
 
