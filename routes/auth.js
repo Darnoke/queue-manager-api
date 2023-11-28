@@ -36,6 +36,23 @@ router.post('/login', async (req, res) => {
     }
 });
 
+router.get('/logout', async (req, res) => {
+  try {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Error destroying session:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+      } else {
+        res.clearCookie('connect.sid.');
+        res.json({ message: 'Logout successful' });
+      }
+    });
+  } catch (error) {
+    console.error('Error during logout:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 router.get('/user', async (req, res) => {
   if (!req.session.user) res.status(401).send('User not logged in');
   return res.status(200).json(req.session.user);
