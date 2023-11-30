@@ -43,16 +43,40 @@ router.delete('/users/:username', async (req, res) => {
   try {
     const userUsername = req.params.username;
     
-    // Check if the user exists
     const user = await User.findById(userUsername);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Perform the delete operation
     await User.findByIdAndDelete(userId);
 
     res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.put('/users/:username', async (req, res) => {
+  try {
+    const userUsername = req.params.username;
+    const { username, role } = req.body;
+
+    if (!userUsername) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { username, role },
+      { new: true } // Returns the updated user
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(updatedUser);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });
