@@ -5,20 +5,22 @@ const User = require('./../models/user');
 
 router.post('/register', async (req, res) => {
     try {
-      const { username, password } = req.body;
+      const { username, role } = req.body;
   
       const existingUser = await User.findOne({ username });
   
       if (existingUser) {
         return res.status(409).send('Username already in use');
       };
+
+      const defaultPassword = process.env.DEFAULT_PASSWORD;
   
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
   
       const user = new User({
         username,
         password: hashedPassword,
-        role: 'admin',
+        role: role,
       });
   
       await user.save();
@@ -66,8 +68,8 @@ router.put('/users/:username', async (req, res) => {
       return res.status(400).json({ error: 'Invalid user ID' });
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
+    const updatedUser = await User.findOneAndUpdate(
+      { username: userUsername },
       { username, role },
       { new: true } // Returns the updated user
     );

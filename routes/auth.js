@@ -25,10 +25,11 @@ router.post('/login', async (req, res) => {
       };
 
       await req.session.save();
+
+      const changePassword = password === process.env.DEFAULT_PASSWORD;
   
       res.status(200).json({
-        username: user.username,
-        role: user.role,
+        changePassword,
       });
     } catch (error) {
       console.error(error);
@@ -56,6 +57,34 @@ router.get('/logout', async (req, res) => {
 router.get('/user', async (req, res) => {
   if (!req.session.user) res.status(401).send('User not logged in');
   return res.status(200).json(req.session.user);
+});
+
+router.post('/change-password', async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).send('User not logged in');
+
+    const { oldPassword, newPassword } = req.body;
+    if (oldPassword === newPassword) return res.status(401).send('Old and new passwords cannot be the same');
+
+    const username = req.session.user.username;
+    const user = await User.findOne({ username });
+    
+    const passwordMatch = await bcrypt.compare(oldPassword, user.password);
+  
+    if (!passwordMatch) return res.status(401).send('Old password is wrong');
+
+    const password = await bcrypt.hash(newPassword, 10);
+
+    await User.findOneAndUpdate(
+      { username },
+      { password }
+    );
+
+    return res.status(200).send('Password has been changed');
+  } catch (error) {
+    console.error('Error during changing password:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 module.exports = router;
