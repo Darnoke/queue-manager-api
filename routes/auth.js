@@ -55,7 +55,7 @@ router.get('/logout', async (req, res) => {
 });
 
 router.get('/user', async (req, res) => {
-  if (!req.session.user) res.status(401).send('User not logged in');
+  if (!req.session.user) return res.status(206).send('User not logged in');
   return res.status(200).json(req.session.user);
 });
 
