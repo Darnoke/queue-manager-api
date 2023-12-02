@@ -41,16 +41,28 @@ router.get('/users', async (req, res) => {
   }
 });
 
+router.get('/user/:username', async (req, res) => {
+  try {
+    const username = req.params.username;
+    
+    const user = await User.findOne({ username });
+    res.json(user);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 router.delete('/users/:username', async (req, res) => {
   try {
-    const userUsername = req.params.username;
+    const username = req.params.username;
     
-    const user = await User.findById(userUsername);
+    const user = await User.findOne({ username });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    await User.findByIdAndDelete(userId);
+    await User.findOneAndDelete({ username });
 
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
