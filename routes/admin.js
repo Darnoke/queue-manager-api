@@ -45,7 +45,7 @@ router.get('/user/:username', async (req, res) => {
   try {
     const username = req.params.username;
     
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ username }, 'username role');
     res.json(user);
   } catch (error) {
     console.error(error);
@@ -76,7 +76,9 @@ router.put('/users/:username', async (req, res) => {
     const userUsername = req.params.username;
     const { username, role } = req.body;
 
-    if (!userUsername) {
+    const user = await User.findOne({ username });
+
+    if (!user) {
       return res.status(400).json({ error: 'Invalid user ID' });
     }
 
