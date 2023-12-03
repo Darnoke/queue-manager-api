@@ -76,10 +76,15 @@ router.put('/users/:username', async (req, res) => {
     const userUsername = req.params.username;
     const { username, role } = req.body;
 
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ username: userUsername });
 
     if (!user) {
-      return res.status(400).json({ error: 'Invalid user ID' });
+      return res.status(400).send('Invalid user ID');
+    }
+
+    if (username !== userUsername) {  // changing username to already existing one
+      const existingUser = await User.findOne({ username });
+      if (existingUser) return res.status(400).send('Username already exists');
     }
 
     const updatedUser = await User.findOneAndUpdate(
