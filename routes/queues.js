@@ -35,6 +35,50 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.delete('/:queueId', async (req, res) => {
+  try {
+    const queueId = req.params.queueId;
+
+    // Check if the queue with the given ID exists
+    const queue = await Queue.findById(queueId);
+    if (!queue) {
+      return res.status(404).json({ error: 'Queue not found' });
+    }
+
+    // Perform the deletion
+    await Queue.findByIdAndDelete(queueId);
+
+    res.status(200).json({ message: 'Queue deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.put('/:queueId', async (req, res) => {
+  try {
+    const queueId = req.params.queueId;
+    const { name } = req.body;
+
+    // Check if the queue with the given ID exists
+    const queue = await Queue.findById(queueId);
+    if (!queue) {
+      return res.status(404).json({ error: 'Queue not found' });
+    }
+
+    // Update the queue fields
+    queue.name = name;
+
+    // Save the updated queue
+    await queue.save();
+
+    res.status(200).json({ message: 'Queue updated successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 // for plan page
 router.get('/:queueId', async (req, res) => {  
   try {

@@ -5,6 +5,6 @@ const queueRoutes = require('./queues');
 const usersRoutes = require('./users');
 
 router.use('/users', usersRoutes);
-// router.use('/queues', queueRoutes);
+router.use('/queues', queueRoutes);
 
 module.exports = router;
