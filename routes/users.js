@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
+const Queue = require('../models/queue');
 
 router.post('/register', async (req, res) => {
   try {
@@ -61,6 +62,11 @@ try {
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
+
+  await Queue.updateMany(
+    { 'userCategories.user': user._id },
+    { $pull: { 'userCategories': { user: user._id } } }
+  );
 
   await User.findOneAndDelete({ username });
 

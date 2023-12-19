@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const Queue = require('../models/queue');
+const Category = require('../models/category');
 const User = require('../models/user');
+const Queue = require('../models/queue');
 
 router.post('/', async (req, res) => {
   try {
@@ -143,7 +144,7 @@ router.get('/:queueId/available-users', async (req, res) => {
     const availableUsers = await User.find({
       _id: { $nin: usersInQueue },
       role: 'client'
-    }, 'name _id');
+    }, 'username _id');
     
     res.status(200).json(availableUsers);
   } catch (error) {
@@ -166,7 +167,7 @@ router.get('/:queueId/users', async (req, res) => {
     // Extract relevant information for each user
     const usersInfo = queue.userCategories.map((userCategory) => ({
       _id: userCategory.user._id,
-      name: userCategory.user.name,
+      username: userCategory.user.username,
       categories: userCategory.categories.map(category => ({
         _id: category._id,
         name: category.name
@@ -340,6 +341,10 @@ router.delete('/:queueId/categories/:categoryId', async (req, res) => {
     if (!queue) {
       return res.status(404).json({ error: 'Queue not found' });
     }
+
+    queue.userCategories.forEach(userCategory => {
+      userCategory.categories = userCategory.categories.filter(category => !category.equals(categoryId));
+    });
 
     // Remove the category from the 'availableCategories' array in the queue
     queue.availableCategories = queue.availableCategories.filter(category => !category.equals(categoryId));
