@@ -311,6 +311,9 @@ router.post('/:queueId/categories', async (req, res) => {
       return res.status(404).json({ error: 'Queue not found' });
     }
 
+    const existingCategory = await Category.findOne({name: categoryName});
+    if (existingCategory) return res.status(400).send('Category with that name already exists');
+
     // Create and save the new category
     const newCategory = new Category({
       name: categoryName,
@@ -374,6 +377,12 @@ router.put('/:queueId/categories/:categoryId', async (req, res) => {
     if (!queue || !category) {
       return res.status(404).json({ error: 'Queue or Category not found' });
     }
+
+    if (updatedCategoryName !== category.name) {
+      const existingCategory = await Category.findOne({name: updatedCategoryName});
+      if (existingCategory) return res.status(400).send('Category with that name already exists');
+    }
+    
 
     // Update the category name
     category.name = updatedCategoryName;
