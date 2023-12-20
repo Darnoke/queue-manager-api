@@ -34,7 +34,7 @@ router.post('/register', async (req, res) => {
 
 router.get('/', async (req, res) => {
 try {
-  const users = await User.find({}, 'username role');
+  const users = await User.find({}, '_id username role');
   res.json(users);
 } catch (error) {
   console.error(error);
@@ -42,11 +42,11 @@ try {
 }
 });
 
-router.get('/:username', async (req, res) => {
+router.get('/:userId', async (req, res) => {
 try {
-  const username = req.params.username;
+  const userId = req.params.userId;
   
-  const user = await User.findOne({ username }, 'username role');
+  const user = await User.findById(userId, '_id username role');
   res.json(user);
 } catch (error) {
   console.error(error);
@@ -54,11 +54,11 @@ try {
 }
 });
 
-router.delete('/:username', async (req, res) => {
+router.delete('/:userId', async (req, res) => {
 try {
-  const username = req.params.username;
+  const userId = req.params.userId;
   
-  const user = await User.findOne({ username });
+  const user = await User.findById(userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
@@ -68,7 +68,7 @@ try {
     { $pull: { 'userCategories': { user: user._id } } }
   );
 
-  await User.findOneAndDelete({ username });
+  await User.findByIdAndDelete(userId);
 
   res.json({ message: 'User deleted successfully' });
 } catch (error) {
@@ -77,24 +77,24 @@ try {
 }
 });
 
-router.put('/:username', async (req, res) => {
+router.put('/:userId', async (req, res) => {
 try {
-  const userUsername = req.params.username;
+  const userId = req.params.userId;
   const { username, role } = req.body;
 
-  const user = await User.findOne({ username: userUsername });
+  const user = await User.findById(userId);
 
   if (!user) {
     return res.status(400).send('Invalid user ID');
   }
 
-  if (username !== userUsername) {  // changing username to already existing one
+  if (username !== user.username) {  // changing username to already existing one
     const existingUser = await User.findOne({ username });
     if (existingUser) return res.status(400).send('Username already exists');
   }
 
-  const updatedUser = await User.findOneAndUpdate(
-    { username: userUsername },
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
     { username, role },
     { new: true } // Returns the updated user
   );
