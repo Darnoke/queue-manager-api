@@ -81,24 +81,21 @@ router.put('/:queueId', async (req, res) => {
 });
 
 // for plan page
-router.get('/:queueId', async (req, res) => {  
+router.get('/:queueId/survey', async (req, res) => {  
   try {
     const queueId = req.params.queueId;
 
-    const queue = await Queue.findById(queueId, 'name survey availableCategories').populate('availableCategories');
+    const queue = await Queue.findById(queueId, 'survey availableCategories').populate('availableCategories');
 
     if (!queue) {
       return res.status(404).json({ error: 'Queue not found' });
     }
-
     const sanitizedCategories = queue.availableCategories.map(cat => {
       const { queue, ...sanitizedCategory } = cat.toObject(); // Exclude the 'queue' field
       return sanitizedCategory;
     });
 
-    queue.availableCategories = sanitizedCategories;
-
-    res.status(200).json(queue);
+    res.status(200).json({ _id: queue._id, survey: queue.survey, availableCategories: sanitizedCategories });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });

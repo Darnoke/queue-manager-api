@@ -1,8 +1,14 @@
 const mongoose = require('mongoose');
 
+const NodeSchema = require('./node');
+const EdgeSchema = require('./edge');
+
 const queueSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
-  survey: { type: mongoose.Schema.Types.Mixed },
+  survey: {
+    nodes: [NodeSchema],
+    edges: [EdgeSchema],
+  },
   userCategories: [{
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     categories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }]
