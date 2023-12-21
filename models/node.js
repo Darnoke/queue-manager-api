@@ -15,7 +15,8 @@ const NodeSchema = new mongoose.Schema({
     x: { type: Number, required: true },
     y: { type: Number, required: true },
   },
-  dragging: { type: String },
+  dragging: { type: Boolean },
+  dragHandle: { type: String },
 });
 
 module.exports = NodeSchema;
