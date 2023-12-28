@@ -231,10 +231,10 @@ router.get('/:queueId/available-users', async (req, res) => {
     // Extract the user IDs that are already in the queue
     const usersInQueue = queue.userCategories.map(userCategory => userCategory.user.toString());
 
-    // Find all clients in the system that are not in the queue
+    // Find all workers in the system that are not in the queue
     const availableUsers = await User.find({
       _id: { $nin: usersInQueue },
-      role: 'client'
+      role: 'worker'
     }, 'username _id');
     
     res.status(200).json(availableUsers);
