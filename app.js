@@ -9,6 +9,7 @@ const MongoStore = require('connect-mongo');
 const mongoose = require('./db');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
+const clientRoutes = require('./routes/client');
 
 const { checkCredentials } = require('./middleware/authMiddleware.js');
 
@@ -48,6 +49,8 @@ const apiRouter = express.Router();
 app.use('/api', (req, res, next)=>{res.header('Access-Control-Allow-Credentials', true); next()} ,apiRouter);
 
 apiRouter.use('/auth', authRoutes);
+
+apiRouter.use('/client', clientRoutes);
 
 apiRouter.use('/admin', checkCredentials('admin'), adminRoutes);
 
