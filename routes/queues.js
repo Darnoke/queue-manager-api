@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Category = require('../models/category');
 const User = require('../models/user');
+const Question = require('../models/question');
 const Queue = require('../models/queue');
 
 router.post('/', async (req, res) => {
@@ -14,7 +15,8 @@ router.post('/', async (req, res) => {
     const queue = new Queue({
       name: name,
       userCategories: [],
-      availableCategories: []
+      availableCategories: [],
+      questions: [],
     });
 
     await queue.save();
@@ -44,6 +46,14 @@ router.delete('/:queueId', async (req, res) => {
     const queue = await Queue.findById(queueId);
     if (!queue) {
       return res.status(404).json({ error: 'Queue not found' });
+    }
+
+    for (let questionId of queue.questions) {
+      Question.findByIdAndDelete(questionId);
+    }
+
+    for (let categoryId of queue.availableCategories) {
+      Category.findByIdAndDelete(categoryId);
     }
 
     // Perform the deletion
@@ -117,6 +127,90 @@ router.put('/:queueId/survey', async (req, res) => {
     queue.survey = newSurvey;
 
     await queue.save();
+
+    const updatedQueue = await Queue.findById(queueId, 'survey questions');
+
+    // update questions
+    
+    const questions = [];
+    for (let i = 0; i < updatedQueue.survey.nodes.length; i++) {
+      const node = updatedQueue.survey.nodes[i];
+
+      if (node.type !== 'question') continue;
+
+      const answers = [];
+
+      for (let j = 0; j < updatedQueue.survey.edges.length; j++) { // find the edges to fill answers targets
+        const edge = updatedQueue.survey.edges[j];
+        if (edge.source === node.id) {
+          const answer = updatedQueue.survey.nodes.find(n => n.id === edge.target);
+          if (answer.type === 'end') {
+            answers.push({
+              id: answer.id,
+              answer: node.data.answers.find(a => a.id === edge.sourceHandle).answer,
+              isEnd: true,
+              category: answer.data.categoryId,
+            });
+          } else {
+            answers.push({
+              id: answer.id,
+              answer: node.data.answers.find(a => a.id === edge.sourceHandle).answer,
+              isEnd: false,
+              nextQuestion: answer._id,
+            });
+          }
+        }
+      }
+
+      questions.push({
+        _id: node._id,
+        question: node.data.question,
+        answers: answers,
+        isStart: false,
+      });
+    }
+
+    // find start node and mark it as start
+    const startNodeId = updatedQueue.survey.nodes.find(n => n.type === 'start').id;
+    const startNodeEdgeTarget = updatedQueue.survey.edges.find(e => e.source === startNodeId).target;
+    const firstNode = updatedQueue.survey.nodes.find(n => n.id === startNodeEdgeTarget);
+
+    questions.map(q => {
+      if (q._id === firstNode._id) {
+        q.isStart = true;
+      }
+      return q;
+    });
+
+    // remove unused questions
+    const questionIds = questions.map(q => q._id);
+    const questionsToDelete = updatedQueue.questions.filter(q => !questionIds.includes(q));
+    for (let questionId of questionsToDelete) {
+      Question.findByIdAndDelete(questionId);
+    }
+
+    // add or update questions
+    Promise.all(
+      questions.map((question) => {
+        return Question.findByIdAndUpdate(
+          question._id,
+          question,
+          { upsert: true, new: true, setDefaultsOnInsert: true },
+        ).exec(); // executing the query to return a promise
+      })
+    )
+    .then((results) => {
+      // process results if needed
+    })
+    .catch((err) => {
+      // handle errors
+      console.error(err);
+    });
+
+    // save questions ids to queue
+    updatedQueue.questions = questions.map(q => q._id);
+    await updatedQueue.save();
+
     res.status(200).json({ message: 'Survey updated', queue: queue });
   } catch (error) {
     console.error(error);
