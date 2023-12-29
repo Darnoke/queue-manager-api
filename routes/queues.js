@@ -4,6 +4,7 @@ const Category = require('../models/category');
 const User = require('../models/user');
 const Question = require('../models/question');
 const Queue = require('../models/queue');
+const Worker = require('../models/worker');
 
 router.post('/', async (req, res) => {
   try {
@@ -14,7 +15,8 @@ router.post('/', async (req, res) => {
 
     const queue = new Queue({
       name: name,
-      userCategories: [],
+      workers: [],
+      clients: [],
       availableCategories: [],
       questions: [],
     });
@@ -222,14 +224,14 @@ router.get('/:queueId/available-users', async (req, res) => {
   try {
     const queueId = req.params.queueId;
 
-    const queue = await Queue.findById(queueId, 'userCategories');
+    const queue = await Queue.findById(queueId, 'workers').populate('workers', 'user');
 
     if (!queue) {
       return res.status(404).json({ error: 'Queue not found' });
     }
 
     // Extract the user IDs that are already in the queue
-    const usersInQueue = queue.userCategories.map(userCategory => userCategory.user.toString());
+    const usersInQueue = queue.workers.map(worker => worker.user.toString());
 
     // Find all workers in the system that are not in the queue
     const availableUsers = await User.find({
@@ -248,18 +250,23 @@ router.get('/:queueId/users', async (req, res) => {
   try {
     const queueId = req.params.queueId;
 
-    // Find the queue and populate the userCategories field
-    const queue = await Queue.findById(queueId).populate('userCategories.user userCategories.categories');
+    const queue = await Queue.findById(queueId).populate({
+      path: 'workers',
+      populate: {
+        path: 'user categories',
+        select: 'username name _id'
+      }
+    });
 
     if (!queue) {
       return res.status(404).json({ error: 'Queue not found' });
     }
 
     // Extract relevant information for each user
-    const usersInfo = queue.userCategories.map((userCategory) => ({
-      _id: userCategory.user._id,
-      username: userCategory.user.username,
-      categories: userCategory.categories.map(category => ({
+    const usersInfo = queue.workers.map((worker) => ({
+      _id: worker.user._id,
+      username: worker.user.username,
+      categories: worker.categories.map(category => ({
         _id: category._id,
         name: category.name
       }))
@@ -280,23 +287,28 @@ router.post('/:queueId/users/:userId', async (req, res) => {
 
     // Find the user and queue
     const user = await User.findById(userId);
-    const queue = await Queue.findById(queueId);
+    const queue = await Queue.findById(queueId).populate('workers', 'user');
 
     if (!user || !queue) {
       return res.status(404).json({ error: 'User or Queue not found' });
     }
 
     // Check if the user is already in the queue
-    const existingUserCategory = queue.userCategories.find(uc => uc.user.equals(user._id));
+    const existingUserCategory = queue.workers.find(worker => worker.user.equals(user._id));
     if (existingUserCategory) {
       return res.status(400).json({ error: 'User is already in the queue' });
     }
 
-    // Add user to the queue's userCategories array
-    queue.userCategories.push({
+    // Add user to the queue's workers array
+    const newWorker = new Worker({
       user: user._id,
-      categories: []
-    });
+      categories: [],
+      clientActionsHistory: [],
+    })
+
+    await newWorker.save();
+
+    queue.workers.push(newWorker._id);
 
     await queue.save();
     res.status(201).json({ message: 'User added to the queue successfully', queue: queue });
@@ -314,14 +326,17 @@ router.delete('/:queueId/users/:userId', async (req, res) => {
 
     // Find the user and queue
     const user = await User.findById(userId);
-    const queue = await Queue.findById(queueId);
+    const queue = await Queue.findById(queueId).populate('workers', 'user');
 
     if (!user || !queue) {
       return res.status(404).json({ error: 'User or Queue not found' });
     }
 
-    // Remove the user from the queue's userCategories array
-    queue.userCategories = queue.userCategories.filter(uc => !uc.user.equals(user._id));
+    // Remove the user from the queue's workers array
+    const workerToRemove = queue.workers.find(worker => worker.user.equals(user._id));
+    queue.workers = queue.workers.filter(worker => !worker.equals(workerToRemove._id));
+
+    Worker.findByIdAndDelete(workerToRemove._id);
 
     await queue.save();
     res.status(200).json({ message: 'User removed from the queue successfully', queue: queue });
@@ -340,22 +355,26 @@ router.put('/:queueId/users/:userId', async (req, res) => {
 
     // Find the user and queue
     const user = await User.findById(userId);
-    const queue = await Queue.findById(queueId);
+    const queue = await Queue.findById(queueId).populate({
+      path: 'workers',
+      populate: { path: 'categories user' }
+    });
 
     if (!user || !queue) {
       return res.status(404).json({ error: 'User or Queue not found' });
     }
 
     // Find the user's category in the queue
-    const userCategory = queue.userCategories.find(uc => uc.user.equals(user._id));
+    const worker = queue.workers.find(worker => worker.user.equals(user._id));
 
-    if (!userCategory) {
+    if (!worker) {
       return res.status(404).json({ error: 'User not found in the queue' });
     }
 
     // Update the user's categories
-    userCategory.categories = newCategories;
+    worker.categories = newCategories;
 
+    await worker.save();
     await queue.save();
     res.status(200).json({ message: 'User categories updated successfully', queue: queue });
   } catch (error) {
@@ -430,15 +449,17 @@ router.delete('/:queueId/categories/:categoryId', async (req, res) => {
     const categoryId = req.params.categoryId;
 
     // Find the queue
-    const queue = await Queue.findById(queueId);
+    const queue = await Queue.findById(queueId).populate('workers');
 
     if (!queue) {
       return res.status(404).json({ error: 'Queue not found' });
     }
 
-    queue.userCategories.forEach(userCategory => {
-      userCategory.categories = userCategory.categories.filter(category => !category.equals(categoryId));
+    queue.workers.forEach(worker => {
+      worker.categories = worker.categories.filter(category => !category.equals(categoryId));
     });
+
+    await Promise.all(queue.workers.map(worker => worker.save()));
 
     // Remove the category from the 'availableCategories' array in the queue
     queue.availableCategories = queue.availableCategories.filter(category => !category.equals(categoryId));

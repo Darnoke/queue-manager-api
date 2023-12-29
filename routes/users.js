@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
+const Worker = require('../models/worker');
 const Queue = require('../models/queue');
 
 router.post('/register', async (req, res) => {
@@ -63,9 +64,17 @@ try {
     return res.status(404).json({ error: 'User not found' });
   }
 
+  const workersToDelete = await Worker.find({ 'user': user._id });
+  const deletedWorkerIds = workersToDelete.map(worker => worker._id);
+
+  Worker.updateMany(
+    { 'user': user._id },
+    { $pull: { 'user': user._id }}
+  );
+
   await Queue.updateMany(
-    { 'userCategories.user': user._id },
-    { $pull: { 'userCategories': { user: user._id } } }
+    { 'workers': { $in: deletedWorkerIds } },
+    { $pull: { 'workers': { $in: deletedWorkerIds }}}
   );
 
   await User.findByIdAndDelete(userId);

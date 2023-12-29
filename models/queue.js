@@ -9,10 +9,8 @@ const queueSchema = new mongoose.Schema({
     nodes: [NodeSchema],
     edges: [EdgeSchema],
   },
-  userCategories: [{
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    categories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }]
-  }],
+  workers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Worker' }],
+  clients: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Client' }],
   availableCategories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }],
   questions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Question' }],
 });

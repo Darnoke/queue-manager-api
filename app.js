@@ -13,7 +13,21 @@ const clientRoutes = require('./routes/client');
 
 const { checkCredentials } = require('./middleware/authMiddleware.js');
 
+// socket io
+const http = require('http');
+const socketIO = require('socket.io');
+const queueSocket = require('./socket/queue.js');
+
 const app = express();
+const server = http.createServer(app);
+const io = socketIO(server, {
+  cors: {
+    origin: 'http://localhost:4000',
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+});
+
 const upload = multer();
 app.use(express.json());
 app.use(cookieParser());
@@ -44,6 +58,8 @@ app.use(session({
   },  
   store: sessionStore,
 }));
+
+queueSocket.setupQueue(io);
 
 const apiRouter = express.Router();
 app.use('/api', (req, res, next)=>{res.header('Access-Control-Allow-Credentials', true); next()} ,apiRouter);
