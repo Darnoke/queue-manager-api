@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const workerSchema = new mongoose.Schema({
+  queue: { type: mongoose.Schema.Types.ObjectId, ref: 'Queue'},
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   categories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }],
   currentStatus: { type: String, enum: ['free', 'occupied', 'not_available'], default: 'not_available' },

@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const QuestionAnswerSchema = require('./questionAnswerSchema');
-const Category = require('./category');
 
 const surveySchema = new mongoose.Schema({
   queue: { type: mongoose.Schema.Types.ObjectId, ref: 'Queue', required: true },

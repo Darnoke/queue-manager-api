@@ -301,6 +301,7 @@ router.post('/:queueId/users/:userId', async (req, res) => {
 
     // Add user to the queue's workers array
     const newWorker = new Worker({
+      queue: queueId,
       user: user._id,
       categories: [],
       clientActionsHistory: [],

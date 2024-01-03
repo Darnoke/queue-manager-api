@@ -10,6 +10,7 @@ const mongoose = require('./db');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const clientRoutes = require('./routes/client');
+const workerRoutes = require('./routes/worker');
 
 const { checkCredentials } = require('./middleware/authMiddleware.js');
 
@@ -64,11 +65,18 @@ queueSocket.setupQueue(io);
 const apiRouter = express.Router();
 app.use('/api', (req, res, next)=>{res.header('Access-Control-Allow-Credentials', true); next()} ,apiRouter);
 
+app.use(function(req, res, next){
+  res.io = io;
+  next();
+});
+
 apiRouter.use('/auth', authRoutes);
 
 apiRouter.use('/client', clientRoutes);
 
 apiRouter.use('/admin', checkCredentials('admin'), adminRoutes);
+
+apiRouter.use('/worker', checkCredentials('worker'), workerRoutes);
 
 apiRouter.get('/', (req, res) => {
   res.send('Hello World!');

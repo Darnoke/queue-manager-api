@@ -22,6 +22,7 @@ router.post('/login', async (req, res) => {
       req.session.user = {
         username: user.username,
         role: user.role,
+        _id: user._id,
       };
 
       await req.session.save();
