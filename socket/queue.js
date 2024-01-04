@@ -3,11 +3,11 @@ const Client = require('../models/client');
 const Queue = require('../models/queue');
 
 const setupQueue = (io) => {
-  // const ioNamespace = io.of('/api/socket/queue');
   console.log('io created');
 
   io.on('connection', async (socket) => {
-    const { queueId } = socket.handshake.query;
+    const { queueId, userId } = socket.handshake.query;
+    const socketId = socket.id;
 
     socket.join(queueId);
     console.log(queueId)
@@ -16,15 +16,56 @@ const setupQueue = (io) => {
 
     });
 
-    // socket.on('authenticated_action', checkCredentialsSocket('worker'), async (data) => {
-    //   // Your existing logic here
-    //   // ...
+    socket.on('take_client', async (clientId) => {
+      const queue = await Queue.findById(queueId).populate({
+        path: 'clients',
+        select: 'category assignedNumber createdAt status',
+        populate: {
+          path: 'category',
+          select: 'name'
+        }
+      });
 
-    //   // Inform all connected clients about the new client
-    //   informClientsAboutNewClient(queueId);
-    // });
+      if (!queue) {
+        console.error('Queue not found');
+        return;
+      }
 
-    // Return current clients list from the database
+      const clientToUpdate = queue.clients.find(client => client._id.toString() === clientId);
+
+      if (!clientToUpdate) {
+        console.error('Client not found');
+        return;
+      }
+
+      clientToUpdate.status = 'inProgress';
+      await queue.save();
+      
+      const clientData = clientToUpdate.toObject();
+      clientData._id = clientData._id.toString();
+      clientData.category._id = clientData.category._id.toString();
+
+      const currentClient = clientData;
+
+      io.to(socketId).emit('worker_update', currentClient);
+      const clients = await getClientList(queueId);
+      io.to(queueId).emit('queue_update', clients);
+    });
+
+    socket.on('finish_client', async (clientId) => {
+      const currentClient = null;
+      io.to(socketId).emit('worker_update', currentClient);
+      const clients = await getClientList(queueId);
+      io.to(queueId).emit('queue_update', clients);
+    });
+
+    socket.on('cancel_client', async (clientId) => {
+      const currentClient = null;
+      io.to(socketId).emit('worker_update', currentClient);
+      const clients = await getClientList(queueId);
+      io.to(queueId).emit('queue_update', clients);
+    });
+
     try {
       const clients = await getClientList(queueId);
       socket.emit('on_connect', clients);
@@ -57,11 +98,12 @@ const getClientList = async (queueId) => {
   }
 }
 
-const emitNewClientAdded = (io, queueId, client) => {
-  io.to(queueId).emit('new_client_added', client);
+const emitQueueUpdate = async (io, queueId) => {
+  const clients = await getClientList(queueId);
+  io.to(queueId).emit('queue_update', clients);
 };
 
 module.exports = {
   setupQueue,
-  emitNewClientAdded
+  emitQueueUpdate
 };

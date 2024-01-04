@@ -5,7 +5,7 @@ const Question = require('../models/question');
 const Survey = require('../models/survey');
 const Queue = require('../models/queue');
 
-const { emitNewClientAdded } = require('../socket/queue.js');
+const { emitQueueUpdate } = require('../socket/queue.js');
 
 router.post('/:queueId', async (req, res) => {
   try { // create survey model, return survey id
@@ -108,7 +108,7 @@ router.post('/:queueId/:surveyId', async (req, res) => {
       clientData._id = clientData._id.toString();
       clientData.category._id = clientData.category._id.toString();
 
-      emitNewClientAdded(res.io, queueId, clientData);
+      emitQueueUpdate(res.io, queueId);
 
       return res.status(200).json({ assignedNumber: survey.assignedNumber, finished: true });
     }
