@@ -5,6 +5,8 @@ const Question = require('../models/question');
 const Survey = require('../models/survey');
 const Queue = require('../models/queue');
 
+const { emitNewClientAdded } = require('../socket/queue.js');
+
 router.post('/:queueId', async (req, res) => {
   try { // create survey model, return survey id
     const queueId = req.params.queueId;
@@ -93,14 +95,20 @@ router.post('/:queueId/:surveyId', async (req, res) => {
     } else {
       survey.finished = true;
       survey.assignedCategory = answer.category;
-      const nextFreeNumber = getNextNumber(queueId);
+      const nextFreeNumber = await getNextNumber(queueId);
 
       survey.assignedNumber = nextFreeNumber;
-      const client = Client.create({ assignedNumber: nextFreeNumber, category: answer.category })
+      const client = await Client.create({ assignedNumber: nextFreeNumber, category: answer.category })
       queue.clients.push(client._id);
 
       await survey.save();
       await queue.save();
+
+      const clientData = client.toObject();
+      clientData._id = clientData._id.toString();
+      clientData.category._id = clientData.category._id.toString();
+
+      emitNewClientAdded(res.io, queueId, clientData);
 
       return res.status(200).json({ assignedNumber: survey.assignedNumber, finished: true });
     }
@@ -129,10 +137,9 @@ const getNextNumber = async (queueId) => {
   if (!queue) {
     return null;
   }
-
   const clients = await Client.find({ status: { $in: ['waiting', 'inProgress'] }});
   const assignedNumbers = clients.map(client => client.assignedNumber);
-  const nextFreeNumber = Math.max(...assignedNumbers) + 1;
+  const nextFreeNumber = Math.max(0, ...assignedNumbers) + 1;
   if (nextFreeNumber > 99 && !assignedNumbers.find(number => number === 1)) {
     nextFreeNumber = 1;
   }

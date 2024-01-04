@@ -63,12 +63,15 @@ app.use(session({
 queueSocket.setupQueue(io);
 
 const apiRouter = express.Router();
-app.use('/api', (req, res, next)=>{res.header('Access-Control-Allow-Credentials', true); next()} ,apiRouter);
-
-app.use(function(req, res, next){
+app.use('/api', (req, res, next) => {
+  // Middleware 1: Set Access-Control-Allow-Credentials header
+  res.header('Access-Control-Allow-Credentials', true);
+  next();
+}, (req, res, next) => {
+  // Middleware 2: Attach 'io' to 'res'
   res.io = io;
   next();
-});
+}, apiRouter);
 
 apiRouter.use('/auth', authRoutes);
 
@@ -84,6 +87,6 @@ apiRouter.get('/', (req, res) => {
 
 const port = process.env.PORT || 3000;
 
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`App listening on port ${port}`);
 });
