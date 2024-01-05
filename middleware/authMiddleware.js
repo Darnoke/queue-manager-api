@@ -5,14 +5,16 @@ const checkCredentials = (requiredRole) => (req, res, next) => {
 };
 
 const checkCredentialsSocket = (requiredRole) => (socket, next) => {
-  const user = socket.request.session.user;
+  const user = socket.handshake.session?.user;
 
   if (user && user.role === requiredRole) {
-      console.log(`User ${user.username} authenticated for the Socket.IO action`);
-      next();
+    console.log(`User ${user.username} authenticated for the Socket.IO action`);
+    socket.isWorker = true;
+    next();
   } else {
-      console.log('User not authenticated for the Socket.IO action');
-      next(new Error('Authentication failed'));
+    console.log('User not authenticated for the Socket.IO action');
+    socket.isWorker = false;
+    next();
   }
 };
 

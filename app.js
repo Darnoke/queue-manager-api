@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const session = require('express-session');
+const sharedsession = require("express-socket.io-session");
 const cors = require('cors');
 const multer = require('multer');
 const cookieParser = require('cookie-parser');
@@ -47,7 +48,7 @@ const sessionStore = MongoStore.create({
   ttl: 14 * 24 * 60 * 60, // 14 days
 });
 
-app.use(session({
+const expressSession = session({
   secret: process.env.SECRET_KEY || 'defaultsecret',
   resave: true,
   saveUninitialized: true,
@@ -58,6 +59,12 @@ app.use(session({
     sameSite: 'lax',
   },  
   store: sessionStore,
+});
+
+app.use(expressSession);
+
+io.use(sharedsession(expressSession, {
+  autoSave:true
 }));
 
 queueSocket.setupQueue(io);
