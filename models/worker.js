@@ -8,7 +8,7 @@ const workerSchema = new mongoose.Schema({
   currentClient: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', default: null },
   clientActionsHistory: [{
     client: { type: mongoose.Schema.Types.ObjectId, ref: 'Client' },
-    action: { type: String, enum: ['waiting', 'inProgress', 'done'] },
+    action: { type: String, enum: ['cancel', 'take', 'finish'] },
     createdAt: { type: Date, default: Date.now },
   }],
 });
