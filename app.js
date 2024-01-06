@@ -54,7 +54,7 @@ const expressSession = session({
   saveUninitialized: true,
   rolling: true, // auto-refresh
   cookie: {
-    maxAge: 20 * 60 * 1000, // 20 minutes
+    maxAge: 60 * 60 * 1000, // 60 minutes
     secure: false,
     sameSite: 'lax',
   },  

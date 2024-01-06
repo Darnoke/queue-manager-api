@@ -16,15 +16,23 @@ const setupQueue = (io) => {
     if (socket.isWorker) {
       try {
         workerId = await getWorkerId(queueId, userId);
+        await handleWorkerConnect(queueId, workerId);
       } catch (error) {
         console.log(error);
       }
     }
 
     socket.join(queueId);
-    console.log(queueId)
 
-    socket.on('disconnect', () => {});
+    socket.on('disconnect', () => {
+      if (socket.isWorker) {
+        try {
+          handleWorkerDisconnect(queueId, workerId);
+        } catch (error) {
+          console.log(error);
+        }
+      }
+    });
 
     if (socket.isWorker) {
       socket.on('take_client', async (clientId) => {
@@ -124,7 +132,7 @@ const handleWorkerAction = async ( queueId, clientId, workerId, status ) => {
 
   const statusToAction = { 'waiting': 'cancel', 'inProgress': 'take', 'done': 'finish' };
 
-  const worker = await Worker.findById(workerId, 'currentStatus clientActionsHistory');
+  const worker = await Worker.findById(workerId, 'currentClient currentStatus clientActionsHistory');
   if (!worker) {
     throw Error('Worker not found');
   }
@@ -133,12 +141,14 @@ const handleWorkerAction = async ( queueId, clientId, workerId, status ) => {
   let clientData = null;
 
   if (status === 'inProgress') {
+    worker.currentClient = clientId;
     worker.currentStatus = 'occupied';
     clientData = clientToUpdate.toObject();
     clientData._id = clientData._id.toString();
     clientData.category._id = clientData.category._id.toString();
   } else {
     worker.currentStatus = 'free';
+    worker.currentClient = null;
   }
 
   await worker.save();
@@ -162,6 +172,22 @@ const getWorkerId = async (queueId, userId) => {
   }
 
   return worker._id.toString();
+}
+
+const handleWorkerDisconnect = async (queueId, workerId) => {
+  const worker = await Worker.findById(workerId, 'currentClient currentStatus');
+  if (worker.currentClient) {
+    const currentClient = worker.currentClient.toString();
+    await handleWorkerAction(queueId, currentClient, workerId, 'done');
+  }
+  worker.currentStatus = 'not_available';
+  await worker.save();
+}
+
+const handleWorkerConnect = async (queueId, workerId) => {
+  const worker = await Worker.findById(workerId, 'currentStatus');
+  worker.currentStatus = 'free';
+  await worker.save();
 }
 
 module.exports = {
