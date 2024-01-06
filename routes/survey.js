@@ -82,7 +82,6 @@ router.post('/:queueId/:surveyId', async (req, res) => {
       return res.status(400).send('Answer not found');
     }
     survey.answers.push({ question: questionId, answerId: answerId });
-
     if (answer.nextQuestion) {
       survey.currentQuestion = answer.nextQuestion;
       await survey.save();
@@ -92,16 +91,17 @@ router.post('/:queueId/:surveyId', async (req, res) => {
         return res.status(404).send('Queue not found');
       }
       return res.status(200).json({ ...questionAndAnswers, finished: false });
-    } else {
+    } else if (!survey.finished) {
       survey.finished = true;
+      await survey.save();
       survey.assignedCategory = answer.category;
       const nextFreeNumber = await getNextNumber(queueId);
 
       survey.assignedNumber = nextFreeNumber;
+      await survey.save();
+
       const client = await Client.create({ assignedNumber: nextFreeNumber, category: answer.category })
       queue.clients.push(client._id);
-
-      await survey.save();
       await queue.save();
 
       const clientData = client.toObject();
