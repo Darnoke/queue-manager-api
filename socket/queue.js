@@ -238,13 +238,14 @@ const getCategoriesCoverage = async (queueId) => {
 }
 
 const calculateScoreList = (workerCategories, availableCategories, clientList) => {
-  const scoreCalculation = { 'good': 300, 'medium': 150, 'bad': 0 };
+  const scoreHeadstart = { 'good': 300, 'medium': 150, 'bad': 0 };
+  const scoreMultiplier = { 'good': 1, 'medium': 0.9, 'bad': 0.7 };
   const clientListCopy = clientList.map(client => {
     const clientCopy = { ...client };
     clientCopy.categoryStatus = workerCategories.includes(clientCopy.category._id) ? 'good' : availableCategories.includes(clientCopy.category._id) ? 'bad' : 'medium';
-    clientCopy.score = scoreCalculation[clientCopy.categoryStatus]; // 300 points if worker has category, 0 if category is available, 150 if not
+    clientCopy.score = scoreHeadstart[clientCopy.categoryStatus]; // 300 points if worker has category, 0 if category is available, 150 if not
     const time = new Date(clientCopy.createdAt);
-    clientCopy.score += (Date.now() - time.getTime()) / 1000;  // 1 point per second
+    clientCopy.score += (Date.now() - time.getTime()) / 1000 * scoreMultiplier[clientCopy.categoryStatus];  // 1 point per second
     return clientCopy;
   });
   return clientListCopy.sort((a, b) => b.score - a.score);
