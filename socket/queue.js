@@ -16,18 +16,21 @@ const setupQueue = (io) => {
     if (socket.isWorker) {
       try {
         workerId = await getWorkerId(queueId, userId);
+        socket.workerId = workerId;
         await handleWorkerConnect(queueId, workerId);
       } catch (error) {
         console.log(error);
       }
     }
+    getCategoriesCoverage(queueId)
 
     socket.join(queueId);
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
       if (socket.isWorker) {
         try {
-          handleWorkerDisconnect(queueId, workerId);
+          await handleWorkerDisconnect(queueId, workerId);
+          await emitQueueUpdate(io, queueId);
         } catch (error) {
           console.log(error);
         }
@@ -39,8 +42,7 @@ const setupQueue = (io) => {
         try {
           const currentClient = await handleWorkerAction(queueId, clientId, workerId, 'inProgress');
           io.to(socketId).emit('worker_update', currentClient);
-          const clients = await getClientList(queueId);
-          io.to(queueId).emit('queue_update', clients);
+          await emitQueueUpdate(io, queueId);
         } catch (error) {
           console.error('Error handling take_client:', error);
         }
@@ -50,8 +52,7 @@ const setupQueue = (io) => {
         try {
           const currentClient = await handleWorkerAction(queueId, clientId, workerId, 'done');
           io.to(socketId).emit('worker_update', currentClient);
-          const clients = await getClientList(queueId);
-          io.to(queueId).emit('queue_update', clients);
+          await emitQueueUpdate(io, queueId);
         } catch (error) {
           console.error('Error handling take_client:', error);
         }
@@ -61,8 +62,7 @@ const setupQueue = (io) => {
         try {
           const currentClient = await handleWorkerAction(queueId, clientId, workerId, 'waiting');
           io.to(socketId).emit('worker_update', currentClient);
-          const clients = await getClientList(queueId);
-          io.to(queueId).emit('queue_update', clients);
+          await emitQueueUpdate(io, queueId);
         } catch (error) {
           console.error('Error handling take_client:', error);
         }
@@ -70,8 +70,12 @@ const setupQueue = (io) => {
     }
 
     try {
-      const clients = await getClientList(queueId);
-      socket.emit('on_connect', clients);
+      if (socket.isWorker) {
+        await emitQueueUpdate(io, queueId);
+      } else { 
+        const clients = await getClientList(queueId);
+        socket.emit('on_connect', clients);
+      }
     } catch (error) {
       console.error('Error retrieving clients from the database:', error);
     }
@@ -103,8 +107,31 @@ const getClientList = async (queueId) => {
 }
 
 const emitQueueUpdate = async (io, queueId) => {
-  const clients = await getClientList(queueId);
-  io.to(queueId).emit('queue_update', clients);
+  try {
+    const clientsPreprocessed = await getClientList(queueId);
+
+    const queueRoom = io.sockets.adapter.rooms.get(queueId);
+    if (!queueRoom) {
+      return;
+    }
+    const availableCategories = await getCategoriesCoverage(queueId);
+    const workers = await Worker.find({ currentStatus: { $ne: 'not_available' }, queue: queueId }, '_id categories');
+    for (const clientId of queueRoom) {
+      const socket = io.sockets.sockets.get(clientId);
+      if (socket.isWorker) {
+        const worker = workers.find(worker => worker._id.equals(socket.workerId));
+        if (!worker) continue;
+        const workerCategories = worker.categories.map(category => category.toString());
+        const clients = calculateScoreList(workerCategories, availableCategories, clientsPreprocessed);
+        socket.emit('queue_update', clients);
+      } else {
+        const clients = clientsPreprocessed;
+        socket.emit('queue_update', clients);
+      }
+    }
+  } catch (error) {
+    console.error('Error emitting queue update:', error);
+  }
 };
 
 const handleWorkerAction = async ( queueId, clientId, workerId, status ) => {
@@ -188,6 +215,39 @@ const handleWorkerConnect = async (queueId, workerId) => {
   const worker = await Worker.findById(workerId, 'currentStatus');
   worker.currentStatus = 'free';
   await worker.save();
+}
+
+const getCategoriesCoverage = async (queueId) => {
+  const queue = await Queue.findById(queueId).populate({
+    path: 'workers',
+    select: 'categories currentStatus'
+  });
+
+  if (!queue) {
+    throw Error('Queue not found');
+  }
+
+  const categories = [];
+  queue.workers.forEach(worker => { if (worker.currentStatus !== 'not_available') {
+    worker.categories.forEach(category => {
+      if (!(category in categories)) categories.push(category.toString());
+    })
+  }});
+
+  return categories;
+}
+
+const calculateScoreList = (workerCategories, availableCategories, clientList) => {
+  const scoreCalculation = { 'good': 300, 'medium': 150, 'bad': 0 };
+  const clientListCopy = clientList.map(client => {
+    const clientCopy = { ...client };
+    clientCopy.categoryStatus = workerCategories.includes(clientCopy.category._id) ? 'good' : availableCategories.includes(clientCopy.category._id) ? 'bad' : 'medium';
+    clientCopy.score = scoreCalculation[clientCopy.categoryStatus]; // 300 points if worker has category, 0 if category is available, 150 if not
+    const time = new Date(clientCopy.createdAt);
+    clientCopy.score += (Date.now() - time.getTime()) / 1000;  // 1 point per second
+    return clientCopy;
+  });
+  return clientListCopy.sort((a, b) => b.score - a.score);
 }
 
 module.exports = {
