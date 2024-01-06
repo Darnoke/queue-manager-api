@@ -238,7 +238,7 @@ const getCategoriesCoverage = async (queueId) => {
 }
 
 const calculateScoreList = (workerCategories, availableCategories, clientList) => {
-  const scoreHeadstart = { 'good': 300, 'medium': 150, 'bad': 0 };
+  const scoreHeadstart = { 'good': 150, 'medium': 90, 'bad': 0 };
   const scoreMultiplier = { 'good': 1, 'medium': 0.9, 'bad': 0.7 };
   const clientListCopy = clientList.map(client => {
     const clientCopy = { ...client };
