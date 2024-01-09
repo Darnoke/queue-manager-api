@@ -9,28 +9,31 @@ const setupQueue = (io) => {
   io.use(checkCredentialsSocket('worker'));
 
   io.on('connection', async (socket) => {
-    const { queueId, userId } = socket.handshake.query;
-    const socketId = socket.id;
+    const { queueId, userId, workerToWatchId } = socket.handshake.query;
     let workerId = '';
 
-    if (socket.isWorker) {
+    if (socket.isWorker && !workerToWatchId) {
       try {
         workerId = await getWorkerId(queueId, userId);
         socket.workerId = workerId;
+        socket.join(workerId);
         await handleWorkerConnect(workerId);
       } catch (error) {
         console.log(error);
       }
+    } else if (workerToWatchId) {
+      socket.workerToWatchId = workerToWatchId;
+      socket.join(workerToWatchId);
     }
-    getCategoriesCoverage(queueId)
 
-    socket.join(queueId);
+    if (queueId) socket.join(queueId);
 
     socket.on('disconnect', async () => {
-      if (socket.isWorker) {
+      if (socket.isWorker && !workerToWatchId) {
         try {
           await handleWorkerDisconnect(queueId, workerId);
           await emitQueueUpdate(io, queueId);
+          io.to(workerId).emit('worker_update', null);
         } catch (error) {
           console.log(error);
         }
@@ -41,7 +44,7 @@ const setupQueue = (io) => {
       socket.on('take_client', async (clientId) => {
         try {
           const currentClient = await handleWorkerAction(queueId, clientId, workerId, 'inProgress');
-          io.to(socketId).emit('worker_update', currentClient);
+          io.to(workerId).emit('worker_update', currentClient);
           await emitQueueUpdate(io, queueId);
         } catch (error) {
           console.error('Error handling take_client:', error);
@@ -51,7 +54,7 @@ const setupQueue = (io) => {
       socket.on('finish_client', async (clientId) => {
         try {
           const currentClient = await handleWorkerAction(queueId, clientId, workerId, 'done');
-          io.to(socketId).emit('worker_update', currentClient);
+          io.to(workerId).emit('worker_update', currentClient);
           await emitQueueUpdate(io, queueId);
         } catch (error) {
           console.error('Error handling take_client:', error);
@@ -61,7 +64,7 @@ const setupQueue = (io) => {
       socket.on('cancel_client', async (clientId) => {
         try {
           const currentClient = await handleWorkerAction(queueId, clientId, workerId, 'waiting');
-          io.to(socketId).emit('worker_update', currentClient);
+          io.to(workerId).emit('worker_update', currentClient);
           await emitQueueUpdate(io, queueId);
         } catch (error) {
           console.error('Error handling take_client:', error);
@@ -70,11 +73,22 @@ const setupQueue = (io) => {
     }
 
     try {
-      if (socket.isWorker) {
+      if (socket.isWorker && !workerToWatchId) { // for worker
         await emitQueueUpdate(io, queueId);
-      } else { 
+        socket.emit('on_connect', workerId);
+      } else if (queueId) {  // for queue screen
         const clients = await getClientList(queueId);
         socket.emit('on_connect', clients);
+      } else if (workerToWatchId) { // for watcher screen
+        const worker = await Worker.findById(workerToWatchId, 'currentClient currentStatus');
+        if (worker.currentStatus === 'occupied') {
+          const client = await Client.findById(worker.currentClient);
+          const clientData = { assignedNumber: client.assignedNumber };
+          
+          socket.emit('worker_update', clientData);
+        } else {
+          socket.emit('worker_update', null);
+        }
       }
     } catch (error) {
       console.error('Error retrieving clients from the database:', error);
@@ -118,6 +132,7 @@ const emitQueueUpdate = async (io, queueId) => {
     const workers = await Worker.find({ currentStatus: { $ne: 'not_available' }, queue: queueId }, '_id categories');
     for (const clientId of queueRoom) {
       const socket = io.sockets.sockets.get(clientId);
+      if (socket.workerToWatchId) continue;
       if (socket.isWorker) {
         const worker = workers.find(worker => worker._id.equals(socket.workerId));
         if (!worker) continue;
