@@ -78,7 +78,7 @@ const setupQueue = (io) => {
         socket.emit('on_connect', workerId);
       } else if (queueId) {  // for queue screen
         const clients = await getClientList(queueId);
-        socket.emit('on_connect', clients);
+        socket.emit('queue_update', clients);
       } else if (workerToWatchId) { // for watcher screen
         const worker = await Worker.findById(workerToWatchId, 'currentClient currentStatus');
         if (worker.currentStatus === 'occupied') {
