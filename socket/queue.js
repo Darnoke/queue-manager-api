@@ -17,7 +17,7 @@ const setupQueue = (io) => {
       try {
         workerId = await getWorkerId(queueId, userId);
         socket.workerId = workerId;
-        await handleWorkerConnect(queueId, workerId);
+        await handleWorkerConnect(workerId);
       } catch (error) {
         console.log(error);
       }
@@ -211,7 +211,7 @@ const handleWorkerDisconnect = async (queueId, workerId) => {
   await worker.save();
 }
 
-const handleWorkerConnect = async (queueId, workerId) => {
+const handleWorkerConnect = async (workerId) => {
   const worker = await Worker.findById(workerId, 'currentStatus');
   worker.currentStatus = 'free';
   await worker.save();
