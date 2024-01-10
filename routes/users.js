@@ -39,7 +39,7 @@ try {
   res.json(users);
 } catch (error) {
   console.error(error);
-  res.status(500).json({ error: 'Internal Server Error' });
+  res.status(500).send('Internal Server Error');
 }
 });
 
@@ -51,7 +51,7 @@ try {
   res.json(user);
 } catch (error) {
   console.error(error);
-  res.status(500).json({ error: 'Internal Server Error' });
+  res.status(500).send('Internal Server Error');
 }
 });
 
@@ -82,7 +82,7 @@ try {
   res.json({ message: 'User deleted successfully' });
 } catch (error) {
   console.error(error);
-  res.status(500).json({ error: 'Internal Server Error' });
+  res.status(500).send('Internal Server Error');
 }
 });
 
@@ -115,7 +115,7 @@ try {
   res.json(updatedUser);
 } catch (error) {
   console.error(error);
-  res.status(500).json({ error: 'Internal Server Error' });
+  res.status(500).send('Internal Server Error');
 }
 });
 

@@ -20,7 +20,7 @@ router.get('/queues/:userId', async (req, res) => {
     return res.json(queueList);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 

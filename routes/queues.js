@@ -26,7 +26,7 @@ router.post('/', async (req, res) => {
   }
   catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -36,7 +36,7 @@ router.get('/', async (req, res) => {
     res.status(200).json(queues);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -64,7 +64,7 @@ router.delete('/:queueId', async (req, res) => {
     res.status(200).json({ message: 'Queue deleted successfully' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -88,7 +88,7 @@ router.put('/:queueId', async (req, res) => {
     res.status(200).json({ message: 'Queue updated successfully' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -110,7 +110,7 @@ router.get('/:queueId/survey', async (req, res) => {
     res.status(200).json({ _id: queue._id, survey: queue.survey, availableCategories: sanitizedCategories });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -216,7 +216,7 @@ router.put('/:queueId/survey', async (req, res) => {
     res.status(200).json({ message: 'Survey updated', queue: queue });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -242,7 +242,7 @@ router.get('/:queueId/available-users', async (req, res) => {
     res.status(200).json(availableUsers);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -275,7 +275,7 @@ router.get('/:queueId/users', async (req, res) => {
     res.status(200).json(usersInfo);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -315,7 +315,7 @@ router.post('/:queueId/users/:userId', async (req, res) => {
     res.status(201).json({ message: 'User added to the queue successfully', queue: queue });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -343,7 +343,7 @@ router.delete('/:queueId/users/:userId', async (req, res) => {
     res.status(200).json({ message: 'User removed from the queue successfully', queue: queue });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -380,7 +380,7 @@ router.put('/:queueId/users/:userId', async (req, res) => {
     res.status(200).json({ message: 'User categories updated successfully', queue: queue });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -405,7 +405,7 @@ router.get('/:queueId/categories', async (req, res) => {
     res.status(200).json(categoriesInfo);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -422,7 +422,7 @@ router.post('/:queueId/categories', async (req, res) => {
       return res.status(404).json({ error: 'Queue not found' });
     }
 
-    const existingCategory = await Category.findOne({name: categoryName});
+    const existingCategory = await Category.findOne({name: categoryName, queue: queueId});
     if (existingCategory) return res.status(400).send('Category with that name already exists');
 
     // Create and save the new category
@@ -439,7 +439,7 @@ router.post('/:queueId/categories', async (req, res) => {
     res.status(201).json({ message: 'Category added successfully', category: newCategory });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -472,7 +472,7 @@ router.delete('/:queueId/categories/:categoryId', async (req, res) => {
     res.status(200).json({ message: 'Category removed successfully' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -504,7 +504,7 @@ router.put('/:queueId/categories/:categoryId', async (req, res) => {
     res.status(200).json({ message: 'Category updated successfully', category: category });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 })
 

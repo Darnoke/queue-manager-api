@@ -43,7 +43,7 @@ router.get('/logout', async (req, res) => {
     req.session.destroy((err) => {
       if (err) {
         console.error('Error destroying session:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).send('Internal Server Error');
       } else {
         res.clearCookie('connect.sid.');
         res.json({ message: 'Logout successful' });
@@ -51,7 +51,7 @@ router.get('/logout', async (req, res) => {
     });
   } catch (error) {
     console.error('Error during logout:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -84,7 +84,7 @@ router.post('/change-password', async (req, res) => {
     return res.status(200).send('Password has been changed');
   } catch (error) {
     console.error('Error during changing password:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 

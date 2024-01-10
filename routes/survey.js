@@ -26,7 +26,7 @@ router.post('/:queueId', async (req, res) => {
     res.status(200).json({ surveyId: survey._id });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -52,7 +52,7 @@ router.get('/:queueId/:surveyId', async (req, res) => {
     res.status(200).json({ ...questionAndAnswers, finished: false });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
@@ -114,7 +114,7 @@ router.post('/:queueId/:surveyId', async (req, res) => {
     }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).send('Internal Server Error');
   }
 });
 
