@@ -24,7 +24,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
   cors: {
-    origin: 'http://localhost:4000',
+    origin: process.env.CLIENT_URL,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -36,7 +36,7 @@ app.use(cookieParser());
 app.use(upload.array());
 
 const corsOptions = {
-  origin: ['http://localhost:4000'],
+  origin: [process.env.CLIENT_URL],
   credentials: true,
 };
 
