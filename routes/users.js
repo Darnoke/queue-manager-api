@@ -1,9 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const User = require('../models/user');
 const Worker = require('../models/worker');
 const Queue = require('../models/queue');
+
+function generateSecurePassword(length = 10) {
+  return crypto.randomBytes(length).toString('base64').slice(0, length);
+}
 
 router.post('/register', async (req, res) => {
   try {
@@ -15,9 +20,9 @@ router.post('/register', async (req, res) => {
       return res.status(409).send('Username already in use');
     };
 
-    const defaultPassword = process.env.DEFAULT_PASSWORD;
+    const generatedPassword = generateSecurePassword();
 
-    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+    const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
     const user = new User({
       username,
@@ -26,7 +31,7 @@ router.post('/register', async (req, res) => {
     });
 
     await user.save();
-    res.status(201).send('User registered successfully.');
+    res.status(201).json({generatedPassword});
   } catch (error) {
     console.error(error);
     res.status(500).send('Internal Server Error');

@@ -27,7 +27,7 @@ router.post('/login', async (req, res) => {
 
       await req.session.save();
 
-      const changePassword = password === process.env.DEFAULT_PASSWORD;
+      const changePassword = user.defaultPassword;
   
       res.status(200).json({
         changePassword,
@@ -78,7 +78,7 @@ router.post('/change-password', async (req, res) => {
 
     await User.findOneAndUpdate(
       { username },
-      { password }
+      { password, defaultPassword: false }
     );
 
     return res.status(200).send('Password has been changed');

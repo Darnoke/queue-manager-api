@@ -34,6 +34,7 @@ async function createAdminUser() {
       username,
       password: hashedPassword,
       role: 'admin',
+      defaultPassword: false,
     });
 
     await user.save();
