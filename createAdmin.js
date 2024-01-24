@@ -4,7 +4,11 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const { Schema } = mongoose;
 
-mongoose.connect(process.env.MONGO_URI);
+try {
+  mongoose.connect(process.env.MONGO_URI);
+} catch (error) {
+  console.error(error);
+} 
 
 const db = mongoose.connection;
 
